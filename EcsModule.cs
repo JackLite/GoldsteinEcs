@@ -56,6 +56,11 @@ namespace EcsCore
             _isActive = false;
         }
 
+        public void Destroy()
+        {
+            Deactivate();
+        }
+
         protected virtual async Task Setup()
         {
             await Task.CompletedTask;

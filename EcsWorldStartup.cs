@@ -18,15 +18,16 @@ namespace EcsCore
         private bool _isInitialize;
         private EcsSystems _systems;
         private EcsModuleSystem _moduleSystem;
+        private IEnumerable<EcsModule> _modules;
 
         private async void Awake()
         {
             _moduleSystem = new EcsModuleSystem();
             _systems = new EcsSystems(world);
             _systems.Add(_moduleSystem);
-            var setups = GetGlobalModules();
+            _modules = GetGlobalModules().ToArray();
 
-            foreach (var type in setups)
+            foreach (var type in _modules)
                 await type.Activate(world);
 
             _systems.Init();
@@ -38,6 +39,11 @@ namespace EcsCore
             if (!_isInitialize)
                 return;
             _systems.Run();
+
+            foreach (var module in _modules)
+            {
+                module.Run();
+            }
             EcsWorldEventsBlackboard.Update();
         }
 
@@ -46,12 +52,20 @@ namespace EcsCore
             if (!_isInitialize)
                 return;
             _systems.RunPhysics();
+            foreach (var module in _modules)
+            {
+                module.RunPhysics();
+            }
         }
 
         private void OnDestroy()
         {
             if (!_isInitialize)
                 return;
+            foreach (var module in _modules)
+            {
+                module.Destroy();
+            }
             _systems.Destroy();
             world.Destroy();
         }
