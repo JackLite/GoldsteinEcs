@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
 using Leopotam.Ecs;
 
@@ -66,9 +68,22 @@ namespace EcsCore
             await Task.CompletedTask;
         }
 
-        protected virtual async void InsertDependencies(IEcsSystem system)
+        private void InsertDependencies(IEcsSystem system)
         {
-            
+            var dependencies = GetDependencies();
+            var fields = system.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
+
+            foreach (var field in fields)
+            {
+                var t = field.FieldType;
+                if (dependencies.ContainsKey(t))
+                    field.SetValue(system, dependencies[t]);
+            }
+        }
+
+        protected virtual Dictionary<Type, object> GetDependencies()
+        {
+            return new Dictionary<Type, object>(0);
         }
     }
 }
