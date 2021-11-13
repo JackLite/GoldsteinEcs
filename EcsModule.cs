@@ -7,49 +7,70 @@ using Leopotam.Ecs;
 namespace EcsCore
 {
     /// <summary>
-    /// Базовый класс для всех точек создания ECS-систем
+    /// Base class for every module
+    /// In modules you can create dependencies for your system and instantiate all prefabs that you need
+    /// Don't create any entities in modules - use IEcsInitSystem instead
     /// </summary>
+    /// <seealso cref="IEcsRunSystem"/>
+    /// <seealso cref="EcsGlobalModuleAttribute"/>
     public abstract class EcsModule
     {
-        protected EcsSystems _systems;
-        protected abstract Type Type { get; }
-
+        private EcsSystems _systems;
         private bool _isActive;
 
+        [Obsolete]
+        protected virtual Type Type => GetType();
+
+        private Type ConcreteType => GetType();
+
         /// <summary>
-        /// Создаёт системы для данного модуля
+        /// Activate concrete module: call and await EcsModule.Setup(), create all systems and insert dependencies
         /// </summary>
-        /// <param name="world"></param>
+        /// <param name="world">The world where systems and entities will live</param>
+        /// <seealso cref="Setup"/>
         public async Task Activate(EcsWorld world)
         {
             _systems = new EcsSystems(world);
             await Setup();
-            foreach (var system in EcsUtilities.CreateSystems(Type))
+
+            foreach (var system in EcsUtilities.CreateSystems(ConcreteType))
             {
                 _systems.Add(system);
                 InsertDependencies(system);
             }
+
             _systems.Init();
             _isActive = true;
         }
 
+        /// <summary>
+        /// Return true if systems was create and init
+        /// </summary>
+        /// <returns></returns>
         public bool IsActiveAndInitialized()
         {
             return _systems ! != null && _isActive;
         }
 
-        public void RunPhysics()
+        /// <summary>
+        /// Just call RunPhysics at systems
+        /// </summary>
+        internal void RunPhysics()
         {
             _systems.RunPhysics();
         }
-        
-        public void Run()
+
+        /// <summary>
+        /// Just call Run at systems
+        /// </summary>
+        internal void Run()
         {
             _systems.Run();
         }
-        
+
         /// <summary>
-        /// Удаляет системы, относящиеся к данному модулю
+        /// Destroy systems in the module
+        /// You can clear something at child, like release some resources
         /// </summary>
         public virtual void Deactivate()
         {
@@ -58,11 +79,18 @@ namespace EcsCore
             _isActive = false;
         }
 
-        public void Destroy()
+        /// <summary>
+        /// For internal usage only
+        /// </summary>
+        internal void Destroy()
         {
             Deactivate();
         }
 
+        /// <summary>
+        /// Call when module activate
+        /// You can create here all dependencies and game objects, that you need
+        /// </summary>
         protected virtual async Task Setup()
         {
             await Task.CompletedTask;
@@ -81,6 +109,10 @@ namespace EcsCore
             }
         }
 
+        /// <summary>
+        /// Must return dictionary of dependencies for all systems in the module
+        /// Dependencies in systems MUST BE private and non-static
+        /// </summary>
         protected virtual Dictionary<Type, object> GetDependencies()
         {
             return new Dictionary<Type, object>(0);

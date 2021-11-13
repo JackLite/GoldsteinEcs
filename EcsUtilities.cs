@@ -7,22 +7,22 @@ using Leopotam.Ecs;
 namespace EcsCore
 {
     /// <summary>
-    /// Набор статических утилит для ECS
+    /// Static utilities
     /// </summary>
-    public static class EcsUtilities
+    internal static class EcsUtilities
     {
         /// <summary>
-        /// Создаёт системы относящиеся к указанному типу точки создания
+        /// Create systems for module
         /// </summary>
-        /// <param name="setupType">Тип точки создания</param>
-        /// <returns>Перечисление созданных систем</returns>
+        /// <param name="moduleType">Type of module</param>
+        /// <returns>Enumerable of created systems</returns>
         /// <seealso cref="EcsModule.Activate"/>
-        public static IEnumerable<IEcsSystem> CreateSystems(Type setupType)
+        internal static IEnumerable<IEcsSystem> CreateSystems(Type moduleType)
         {
             return
                 from type in Assembly.GetExecutingAssembly().GetTypes()
                 let attr = type.GetCustomAttribute<EcsSystemAttribute>()
-                where attr != null && attr.Setup == setupType
+                where attr != null && attr.Module == moduleType
                 select (IEcsSystem)Activator.CreateInstance(type);
         }
     }

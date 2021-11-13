@@ -6,9 +6,9 @@ using UnityEngine;
 namespace EcsCore
 {
     /// <summary>
-    /// Доска событий, на которую прилетают события из ECS-мира
-    /// В основном используется для UI
-    /// Событие хранится, пока не будет обработано
+    /// Event's blackboard for simple events from UI or for UI
+    /// Event remain while someone handle it
+    /// Important: Use this way only for global events or something that can not be simple handle by some system
     /// </summary>
     public static class EcsWorldEventsBlackboard
     {
@@ -23,11 +23,11 @@ namespace EcsCore
         private static readonly Dictionary<Type, int> _eventFrameTime = new Dictionary<Type, int>(0);
 
         /// <summary>
-        /// Добавляет обработчик указанного события
-        /// Стоит не забывать отписываться от события, если объект уничтожается
+        /// Add handler for event
+        /// Don't forget remove handler when it destroyed
         /// </summary>
-        /// <param name="handler">Обработчик события</param>
-        /// <typeparam name="T">Тип события</typeparam>
+        /// <param name="handler">Event's handler</param>
+        /// <typeparam name="T">Event's type</typeparam>
         /// <seealso cref="RemoveEventHandler{T}"/>
         public static void AddEventHandler<T>(Action<T> handler) where T : class
         {
@@ -38,11 +38,10 @@ namespace EcsCore
         }
 
         /// <summary>
-        /// Удаляет обработчик события
-        /// Используется для отписки от события
+        /// Remove handler for event
         /// </summary>
-        /// <param name="handler">Обработчик события, который ранее был добавлен</param>
-        /// <typeparam name="T">Тип события</typeparam>
+        /// <param name="handler">Event' handler</param>
+        /// <typeparam name="T">Event's type</typeparam>
         /// <seealso cref="AddEventHandler{T}"/>
         public static void RemoveEventHandler<T>(Action<T> handler) where T : class
         {
@@ -64,30 +63,30 @@ namespace EcsCore
         }
 
         /// <summary>
-        /// Добавляет событие на доску
-        /// Если доска уже содержит данное событие, то оно будет перезаписано
+        /// Add event at blackboard
+        /// If event exists it will be overridden
         /// </summary>
-        /// <param name="newEvent">Событие</param>
-        /// <typeparam name="T">Тип события</typeparam>
+        /// <param name="newEvent">Event</param>
+        /// <typeparam name="T">Event's type</typeparam>
         public static void AddEvent<T>(T newEvent) where T : class
         {
             _buffer.Add(newEvent);
         }
 
         /// <summary>
-        /// Проверяет, существует ли на доске событие определённого типа
+        /// Check if event exists
         /// </summary>
-        /// <typeparam name="T">Тип события</typeparam>
-        /// <returns>true/false в зависимости от наличия на доске соответствующего события</returns>
+        /// <typeparam name="T">Event type</typeparam>
         public static bool IsEventExist<T>() where T : class
         {
             return _readyEvents.Any(e => e is T);
         }
 
         /// <summary>
-        /// Проверка буффера событий и вызов события
+        /// Processing events
+        /// Only for internal usage
         /// </summary>
-        public static void Update()
+        internal static void Update()
         {
             ReadBuffer();
             HandleEvents();

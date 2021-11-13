@@ -3,7 +3,7 @@
 namespace EcsCore
 {
     /// <summary>
-    /// Помеченные этим аттрибутом модули будут запускаться при инициализации
+    /// Mark by this attribute modules will init at start
     /// </summary>
     public class EcsGlobalModuleAttribute : Attribute
     {

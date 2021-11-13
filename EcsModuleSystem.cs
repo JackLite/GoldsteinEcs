@@ -7,15 +7,15 @@ using Leopotam.Ecs;
 namespace EcsCore
 {
     /// <summary>
-    /// Отвечает за управление модулями, их активацию и деактивацию по сигналу
+    /// Internal system for controlling activation and deactivation of modules
     /// </summary>
-    public class EcsModuleSystem : IEcsRunSystem, IEcsPhysicRunSystem
+    internal class EcsModuleSystem : IEcsRunSystem, IEcsPhysicRunSystem
     {
         private readonly EcsWorld _world;
         private EcsFilter<EcsModuleActivationSignal> _activationFilter;
         private EcsFilter<EcsModuleDeactivationSignal> _deactivationFilter;
         private readonly EcsModule[] _modules;
-        public EcsModuleSystem()
+        internal EcsModuleSystem()
         {
             _modules = GetAllEcsSetups().ToArray();
         }

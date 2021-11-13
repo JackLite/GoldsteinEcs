@@ -8,8 +8,9 @@ using UnityEngine;
 namespace EcsCore
 {
     /// <summary>
-    ///     Отвечает за запуск ECS-мира
-    ///     Создаёт, обрабатывает и удаляет системы
+    /// Entry point for ecs world
+    /// Processing Init, Run and RunPhysics
+    /// Create ecs world and global modules
     /// </summary>
     public class EcsWorldStartup : MonoBehaviour
     {

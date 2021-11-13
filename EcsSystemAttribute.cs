@@ -3,23 +3,22 @@
 namespace EcsCore
 {
     /// <summary>
-    /// Атрибут, которым помечаются все классы, являющиеся ECS-системами
+    /// Mark system for auto-creation in concrete module
     /// </summary>
     /// <seealso cref="EcsModule"/>
-    /// <seealso cref="EcsUtilities"/>
     public class EcsSystemAttribute : Attribute
     {
         /// <summary>
-        /// Тип точки создания системы
+        /// Type of module
         /// </summary>
-        public readonly Type Setup;
+        public readonly Type Module;
 
-        /// <param name="setup">Тип точки создания системы</param>
+        /// <param name="module">Type of module</param>
         /// <seealso cref="EcsModule"/>
         /// <seealso cref="EcsUtilities"/>
-        public EcsSystemAttribute(Type setup)
+        public EcsSystemAttribute(Type module)
         {
-            Setup = setup;
+            Module = module;
         }
     }
 }
