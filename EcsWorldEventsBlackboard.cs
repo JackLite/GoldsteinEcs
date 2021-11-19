@@ -13,9 +13,8 @@ namespace EcsCore
     public static class EcsWorldEventsBlackboard
     {
         private const int MAX_EVENT_FRAMES_LIFETIME = 600;
-        private static readonly List<object> _readyEvents = new List<object>();
+        private static readonly LinkedList<object> _readyEvents = new LinkedList<object>();
         private static readonly List<object> _buffer = new List<object>();
-        private static readonly List<int> _eventsForDelete = new List<int>();
 
         private static readonly Dictionary<Type, List<HandlerWrapper>> _handlers =
             new Dictionary<Type, List<HandlerWrapper>>();
@@ -99,7 +98,7 @@ namespace EcsCore
         {
             foreach (var e in _buffer)
             {
-                _readyEvents.Add(e);
+                _readyEvents.AddLast(e);
             }
 
             _buffer.Clear();
@@ -107,21 +106,29 @@ namespace EcsCore
 
         private static void HandleEvents()
         {
-            for(var i = 0; i < _readyEvents.Count; i++)
-            {
-                var e = _readyEvents[i];
-                if (!_handlers.ContainsKey(e.GetType()))
-                    continue;
-                foreach (var h in _handlers[e.GetType()])
-                    h?.HandleEvent(e);
-                _eventsForDelete.Add(i);
-            }
+            var node = _readyEvents.First;
 
-            foreach (var index in _eventsForDelete)
+            if (node == null)
+                return;
+
+            do
             {
-                _readyEvents.Remove(_readyEvents[index]);
+                var currentNode = node;
+                node = node.Next;
+                var e = currentNode.Value;
+                HandleOneEvent(e, currentNode);
             }
-            _eventsForDelete.Clear();
+            while (node != null);
+        }
+
+        private static void HandleOneEvent(object e, LinkedListNode<object> currentNode)
+        {
+            if (!_handlers.ContainsKey(e.GetType()))
+                return;
+
+            foreach (var h in _handlers[e.GetType()])
+                h?.HandleEvent(e);
+            _readyEvents.Remove(currentNode);
         }
 
         private static void CheckEventsLifetime()
