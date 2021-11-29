@@ -26,7 +26,7 @@ namespace EcsCore
             _moduleSystem = new EcsModuleSystem();
             _systems = new EcsSystems(world);
             _systems.Add(_moduleSystem);
-            _modules = GetGlobalModules().ToArray();
+            _modules = CreateGlobalModules().ToArray();
 
             foreach (var type in _modules)
                 await type.Activate(world);
@@ -71,7 +71,7 @@ namespace EcsCore
             world.Destroy();
         }
 
-        private static IEnumerable<EcsModule> GetGlobalModules()
+        private static IEnumerable<EcsModule> CreateGlobalModules()
         {
             return Assembly.GetExecutingAssembly()
                            .GetTypes()

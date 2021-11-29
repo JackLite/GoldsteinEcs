@@ -17,11 +17,18 @@ namespace EcsCore
     {
         private EcsSystems _systems;
         private bool _isActive;
+        private readonly bool _isGlobal;
+        private static readonly Dictionary<Type, object> _globalDependencies = new Dictionary<Type, object>();
 
         [Obsolete]
         protected virtual Type Type => GetType();
 
         private Type ConcreteType => GetType();
+
+        protected EcsModule()
+        {
+            _isGlobal = ConcreteType.GetCustomAttribute<EcsGlobalModuleAttribute>() != null;
+        }
 
         /// <summary>
         /// Activate concrete module: call and await EcsModule.Setup(), create all systems and insert dependencies
@@ -32,6 +39,8 @@ namespace EcsCore
         {
             _systems = new EcsSystems(world);
             await Setup();
+
+            UpdateGlobalDependencies();
 
             foreach (var system in EcsUtilities.CreateSystems(ConcreteType))
             {
@@ -96,6 +105,19 @@ namespace EcsCore
             await Task.CompletedTask;
         }
 
+        private void UpdateGlobalDependencies()
+        {
+            if (!_isGlobal)
+                return;
+
+            foreach (var kvp in GetDependencies())
+            {
+                if (_globalDependencies.ContainsKey(kvp.Key))
+                    continue;
+                _globalDependencies.Add(kvp.Key, kvp.Value);
+            }
+        }
+
         private void InsertDependencies(IEcsSystem system)
         {
             var dependencies = GetDependencies();
@@ -104,6 +126,8 @@ namespace EcsCore
             foreach (var field in fields)
             {
                 var t = field.FieldType;
+                if (_globalDependencies.ContainsKey(t))
+                    field.SetValue(system, _globalDependencies[t]);
                 if (dependencies.ContainsKey(t))
                     field.SetValue(system, dependencies[t]);
             }
