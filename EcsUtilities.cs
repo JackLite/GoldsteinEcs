@@ -25,5 +25,14 @@ namespace EcsCore
                 where attr != null && attr.Module == moduleType
                 select (IEcsSystem)Activator.CreateInstance(type);
         }
+
+        internal static IEnumerable<Type> GetOneFrameTypes()
+        {
+            return
+                from type in Assembly.GetExecutingAssembly().GetTypes()
+                let attr = type.GetCustomAttribute<EcsOneFrameAttribute>()
+                where attr != null
+                select type;
+        }
     }
 }
