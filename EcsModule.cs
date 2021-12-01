@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Leopotam.Ecs;
 
@@ -19,6 +20,7 @@ namespace EcsCore
         private bool _isActive;
         private readonly bool _isGlobal;
         private static readonly Dictionary<Type, object> _globalDependencies = new Dictionary<Type, object>();
+        private static Exception _exception;
 
         [Obsolete]
         protected virtual Type Type => GetType();
@@ -38,17 +40,24 @@ namespace EcsCore
         public async Task Activate(EcsWorld world)
         {
             _systems = new EcsSystems(world);
-            await Setup();
-
-            UpdateGlobalDependencies();
-
-            foreach (var system in EcsUtilities.CreateSystems(ConcreteType))
+            try
             {
-                _systems.Add(system);
-                InsertDependencies(system);
-            }
+                await Setup();
 
-            _systems.Init();
+                UpdateGlobalDependencies();
+
+                foreach (var system in EcsUtilities.CreateSystems(ConcreteType))
+                {
+                    _systems.Add(system);
+                    InsertDependencies(system);
+                }
+
+                _systems.Init();
+            }
+            catch (Exception e)
+            {
+                _exception = new Exception(e.Message, e);
+            }
             _isActive = true;
         }
 
@@ -66,6 +75,7 @@ namespace EcsCore
         /// </summary>
         internal void RunPhysics()
         {
+            CheckException();
             _systems.RunPhysics();
         }
 
@@ -74,8 +84,10 @@ namespace EcsCore
         /// </summary>
         internal void Run()
         {
+            CheckException();
             _systems.Run();
         }
+
 
         /// <summary>
         /// Destroy systems in the module
@@ -103,6 +115,14 @@ namespace EcsCore
         protected virtual async Task Setup()
         {
             await Task.CompletedTask;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CheckException()
+        {
+            if (_exception == null)
+                return;
+            throw _exception;
         }
 
         private void UpdateGlobalDependencies()
