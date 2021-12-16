@@ -17,6 +17,7 @@ namespace EcsCore
         private EcsSystems _systems;
         private EcsModuleSystem _moduleSystem;
         private EcsModule[] _modules;
+        private EcsEventTable _eventTable;
 
         [RuntimeInitializeOnLoadMethod]
         private static void Startup()
@@ -32,17 +33,14 @@ namespace EcsCore
         }
         private async void StartWorld()
         {
-            _moduleSystem = new EcsModuleSystem();
+            _eventTable = new EcsEventTable();
+            _moduleSystem = new EcsModuleSystem(_eventTable);
             _systems = new EcsSystems(World);
             _systems.Add(_moduleSystem);
             _modules = CreateGlobalModules().ToArray();
 
             foreach (var type in _modules)
-                await type.Activate(World);
-
-            var method = typeof(EcsSystems).GetMethod("OneFrame");
-            foreach (var oneFrameType in EcsUtilities.GetOneFrameTypes())
-                method.MakeGenericMethod(oneFrameType).Invoke(_systems, null);
+                await type.Activate(World, _eventTable);
             
             _systems.Init();
             _isInitialize = true;
@@ -59,12 +57,7 @@ namespace EcsCore
                 _modules[i].Run();
             }
             EcsWorldEventsBlackboard.Update();
-            
-            _systems.RunOneFrameRemove();
-            for (var i = 0; i < _modules.Length; ++i)
-            {
-                _modules[i].RunOneFrameRemove();
-            }
+            _eventTable.Update();
         }
 
         private void FixedUpdate()

@@ -12,24 +12,18 @@ namespace EcsCore
     internal class EcsModuleSystem : IEcsRunSystem, IEcsPhysicRunSystem
     {
         private readonly EcsWorld _world;
+        private readonly EcsEventTable _eventTable;
         private EcsFilter<EcsModuleActivationSignal> _activationFilter;
         private EcsFilter<EcsModuleDeactivationSignal> _deactivationFilter;
         private readonly EcsModule[] _modules;
-        internal EcsModuleSystem()
+        internal EcsModuleSystem(EcsEventTable eventTable)
         {
+            _eventTable = eventTable;
             _modules = GetAllEcsSetups().ToArray();
         }
 
         public void Run()
         {
-            foreach (var i in _activationFilter)
-            {
-                var type = _activationFilter.Get1(i).ModuleType;
-                var module = _modules.FirstOrDefault(m => m.GetType() == type);
-                module?.Activate(_world);
-                _activationFilter.GetEntity(i).Destroy();
-            }
-
             foreach (var i in _deactivationFilter)
             {
                 var type = _deactivationFilter.Get1(i).ModuleType;
@@ -37,7 +31,14 @@ namespace EcsCore
                 module?.Deactivate();
                 _deactivationFilter.GetEntity(i).Destroy();
             }
-            
+            foreach (var i in _activationFilter)
+            {
+                var type = _activationFilter.Get1(i).ModuleType;
+                var module = _modules.FirstOrDefault(m => m.GetType() == type);
+                module?.Activate(_world, _eventTable);
+                _activationFilter.GetEntity(i).Destroy();
+            }
+
             foreach (var module in _modules)
             {
                 if(module.IsActiveAndInitialized())

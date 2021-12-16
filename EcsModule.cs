@@ -36,10 +36,12 @@ namespace EcsCore
         /// Activate concrete module: call and await EcsModule.Setup(), create all systems and insert dependencies
         /// </summary>
         /// <param name="world">The world where systems and entities will live</param>
+        /// <param name="eventTable">The table for events</param>
         /// <seealso cref="Setup"/>
-        public async Task Activate(EcsWorld world)
+        public async Task Activate(EcsWorld world, EcsEventTable eventTable)
         {
             _systems = new EcsSystems(world);
+            _systems.Inject(eventTable);
             try
             {
                 await Setup();

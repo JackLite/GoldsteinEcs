@@ -20,23 +20,21 @@ namespace EcsCore
         public static readonly EcsWorld world = LazyWorld.Value;
         private bool _isInitialize;
         private EcsSystems _systems;
+        private EcsEventTable _eventTable;
         private EcsModuleSystem _moduleSystem;
         private IEnumerable<EcsModule> _modules;
 
         private async void Awake()
         {
-            _moduleSystem = new EcsModuleSystem();
+            _eventTable = new EcsEventTable();
+            _moduleSystem = new EcsModuleSystem(_eventTable);
             _systems = new EcsSystems(world);
             _systems.Add(_moduleSystem);
             _modules = CreateGlobalModules().ToArray();
 
             foreach (var type in _modules)
-                await type.Activate(world);
+                await type.Activate(world, _eventTable);
 
-            var method = typeof(EcsSystems).GetMethod("OneFrame");
-            foreach (var oneFrameType in EcsUtilities.GetOneFrameTypes())
-                method.MakeGenericMethod(oneFrameType).Invoke(_systems, null);
-            
             _systems.Init();
             _isInitialize = true;
         }
