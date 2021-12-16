@@ -4,34 +4,41 @@ using System.Linq;
 using System.Reflection;
 using Leopotam.Ecs;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace EcsCore
 {
-    /// <summary>
-    /// Old entry point for ecs world
-    /// Processing Init, Run and RunPhysics
-    /// Create ecs world and global modules
-    /// Remove after 01/01/2022
-    /// </summary>
-    [Obsolete]
-    public class EcsWorldStartup : MonoBehaviour
+    public class EcsWorldContainer
     {
-        private static readonly Lazy<EcsWorld> LazyWorld = new Lazy<EcsWorld>();
-        public static readonly EcsWorld world = LazyWorld.Value;
+        private static Lazy<EcsWorld> lazyWorld = new Lazy<EcsWorld>();
+        private static EcsWorldContainer instance;
+        public static EcsWorld World => lazyWorld.Value;
         private bool _isInitialize;
         private EcsSystems _systems;
         private EcsModuleSystem _moduleSystem;
-        private IEnumerable<EcsModule> _modules;
+        private EcsModule[] _modules;
 
-        private async void Awake()
+        [RuntimeInitializeOnLoadMethod]
+        private static void Startup()
+        {
+            if (Object.FindObjectOfType<EcsWorldStartup>())
+                return;
+            instance = new EcsWorldContainer();
+            var ecsMono = new GameObject("EcsWorld").AddComponent<EcsWorldMono>();
+            ecsMono.OnUpdate = instance.Update;
+            ecsMono.OnFixedUpdate = instance.FixedUpdate;
+            ecsMono.OnDestroyed = instance.OnDestroy;
+            instance.StartWorld();
+        }
+        private async void StartWorld()
         {
             _moduleSystem = new EcsModuleSystem();
-            _systems = new EcsSystems(world);
+            _systems = new EcsSystems(World);
             _systems.Add(_moduleSystem);
             _modules = CreateGlobalModules().ToArray();
 
             foreach (var type in _modules)
-                await type.Activate(world);
+                await type.Activate(World);
 
             var method = typeof(EcsSystems).GetMethod("OneFrame");
             foreach (var oneFrameType in EcsUtilities.GetOneFrameTypes())
@@ -47,11 +54,17 @@ namespace EcsCore
                 return;
             _systems.Run();
 
-            foreach (var module in _modules)
+            for (var i = 0; i < _modules.Length; ++i)
             {
-                module.Run();
+                _modules[i].Run();
             }
             EcsWorldEventsBlackboard.Update();
+            
+            _systems.RunOneFrameRemove();
+            for (var i = 0; i < _modules.Length; ++i)
+            {
+                _modules[i].RunOneFrameRemove();
+            }
         }
 
         private void FixedUpdate()
@@ -74,7 +87,8 @@ namespace EcsCore
                 module.Destroy();
             }
             _systems.Destroy();
-            world.Destroy();
+            World.Destroy();
+            lazyWorld = new Lazy<EcsWorld>();
         }
 
         private static IEnumerable<EcsModule> CreateGlobalModules()
