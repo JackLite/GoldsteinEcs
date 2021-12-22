@@ -28,14 +28,17 @@ namespace EcsCore
             {
                 var type = _deactivationFilter.Get1(i).ModuleType;
                 var module = _modules.FirstOrDefault(m => m.GetType() == type);
-                module?.Deactivate();
+                if(module != null && module.IsActiveAndInitialized())
+                    module.Deactivate();
                 _deactivationFilter.GetEntity(i).Destroy();
             }
             foreach (var i in _activationFilter)
             {
                 var type = _activationFilter.Get1(i).ModuleType;
                 var module = _modules.FirstOrDefault(m => m.GetType() == type);
-                module?.Activate(_world, _eventTable);
+                if(module != null && !module.IsActiveAndInitialized())
+                    module.Activate(_world, _eventTable);
+
                 _activationFilter.GetEntity(i).Destroy();
             }
 
