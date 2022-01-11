@@ -19,7 +19,13 @@ namespace EcsCore
             events.AddLast(ecsEvent);
         }
 
+        [Obsolete]
         public bool IsEventExist<T>() where T : struct
+        {
+            return eventsTypes.Contains(typeof(T));
+        }
+
+        public bool Has<T>() where T : struct
         {
             return eventsTypes.Contains(typeof(T));
         }
