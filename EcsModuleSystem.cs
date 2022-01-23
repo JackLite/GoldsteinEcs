@@ -9,7 +9,7 @@ namespace EcsCore
     /// <summary>
     /// Internal system for controlling activation and deactivation of modules
     /// </summary>
-    internal class EcsModuleSystem : IEcsRunSystem, IEcsPhysicRunSystem
+    internal class EcsModuleSystem : IEcsRunSystem, IEcsRunPhysicSystem
     {
         private readonly EcsWorld _world;
         private readonly EcsEventTable _eventTable;

@@ -50,9 +50,9 @@ namespace Leopotam.Ecs {
     }
     
     /// <summary>
-    /// Interface for Physics Run systems.
+    /// Interface for Run Physics systems.
     /// </summary>
-    public interface IEcsPhysicRunSystem : IEcsSystem {
+    public interface IEcsRunPhysicSystem : IEcsSystem {
         void RunPhysics ();
     }
 
@@ -143,7 +143,7 @@ namespace Leopotam.Ecs {
                 _runSystems.Add (new EcsSystemsRunItem { Active = true, System = (IEcsRunSystem) system });
             }
             
-            if (system is IEcsPhysicRunSystem) {
+            if (system is IEcsRunPhysicSystem) {
                 if (namedRunSystem == null && system is EcsSystems ecsSystems) {
                     namedRunSystem = ecsSystems.Name;
                 }
@@ -155,7 +155,7 @@ namespace Leopotam.Ecs {
                     #endif
                     _namedRunSystems[namedRunSystem.GetHashCode ()] = _runPhysicSystems.Count;
                 }
-                _runPhysicSystems.Add (new EcsSystemsPhysicRunItem { Active = true, System = (IEcsPhysicRunSystem) system });
+                _runPhysicSystems.Add (new EcsSystemsPhysicRunItem { Active = true, System = (IEcsRunPhysicSystem) system });
             }
             
             return this;
@@ -434,6 +434,6 @@ namespace Leopotam.Ecs {
     /// </summary>
     public sealed class EcsSystemsPhysicRunItem {
         public bool Active;
-        public IEcsPhysicRunSystem System;
+        public IEcsRunPhysicSystem System;
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using EcsCore.DependencyInjection;
 using Leopotam.Ecs;
 
 namespace EcsCore
@@ -143,6 +144,31 @@ namespace EcsCore
         private void InsertDependencies(IEcsSystem system)
         {
             var dependencies = GetDependencies();
+            var setupMethod = GetSetupMethod(system);
+            if (setupMethod != null)
+            {
+                var parameters = setupMethod.GetParameters();
+                var injections = new object[parameters.Length];
+                var i = 0;
+                foreach (var parameter in parameters)
+                {
+                    var t = parameter.ParameterType;
+                    if (_globalDependencies.ContainsKey(t))
+                    {
+                        injections[i++] = _globalDependencies[t];
+                        continue;
+                    }
+
+                    if (dependencies.ContainsKey(t))
+                    {
+                        injections[i++] = dependencies[t];
+                        continue;
+                    }
+                    throw new Exception($"Can't find injection {parameter.ParameterType} in method {setupMethod.Name}");
+                }
+                setupMethod.Invoke(system, injections);
+                return;
+            }
             var fields = system.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
 
             foreach (var field in fields)
@@ -153,6 +179,18 @@ namespace EcsCore
                 if (dependencies.ContainsKey(t))
                     field.SetValue(system, dependencies[t]);
             }
+        }
+
+        private MethodInfo GetSetupMethod(IEcsSystem system)
+        {
+            var methods = system.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance);
+            foreach (var methodInfo in methods)
+            {
+                if (methodInfo.GetCustomAttribute<SetupAttribute>() == null)
+                    continue;
+                return methodInfo;
+            }
+            return null;
         }
 
         /// <summary>

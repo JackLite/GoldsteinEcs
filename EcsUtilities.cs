@@ -19,11 +19,16 @@ namespace EcsCore
         /// <seealso cref="EcsModule.Activate"/>
         internal static IEnumerable<IEcsSystem> CreateSystems(Type moduleType)
         {
+            return GetSystemTypes(moduleType).Select(t => (IEcsSystem) Activator.CreateInstance(t));
+        }
+
+        private static IEnumerable<Type> GetSystemTypes(Type moduleType)
+        {
             return
                 from type in Assembly.GetExecutingAssembly().GetTypes()
                 let attr = type.GetCustomAttribute<EcsSystemAttribute>()
                 where attr != null && attr.Module == moduleType
-                select (IEcsSystem)Activator.CreateInstance(type);
+                select type;
         }
     }
 }
