@@ -22,15 +22,15 @@ namespace EcsCore
         [RuntimeInitializeOnLoadMethod]
         private static void Startup()
         {
-            if (Object.FindObjectOfType<EcsWorldStartup>())
-                return;
             instance = new EcsWorldContainer();
             var ecsMono = new GameObject("EcsWorld").AddComponent<EcsWorldMono>();
-            ecsMono.OnUpdate = instance.Update;
-            ecsMono.OnFixedUpdate = instance.FixedUpdate;
-            ecsMono.OnDestroyed = instance.OnDestroy;
+            ecsMono.onUpdate = instance.Update;
+            ecsMono.onFixedUpdate = instance.FixedUpdate;
+            ecsMono.onLateUpdate = instance.LateUpdate;
+            ecsMono.onDestroyed = instance.OnDestroy;
             instance.StartWorld();
         }
+
         private async void StartWorld()
         {
             _eventTable = new EcsEventTable();
@@ -41,7 +41,7 @@ namespace EcsCore
 
             foreach (var type in _modules)
                 await type.Activate(World, _eventTable);
-            
+
             _systems.Init();
             _isInitialize = true;
         }
@@ -56,6 +56,7 @@ namespace EcsCore
             {
                 _modules[i].Run();
             }
+
             EcsWorldEventsBlackboard.Update();
             _eventTable.Update();
         }
@@ -65,9 +66,20 @@ namespace EcsCore
             if (!_isInitialize)
                 return;
             _systems.RunPhysics();
-            foreach (var module in _modules)
+            for (var i = 0; i < _modules.Length; ++i)
             {
-                module.RunPhysics();
+                _modules[i].RunPhysics();
+            }
+        }
+
+        private void LateUpdate()
+        {
+            if (!_isInitialize)
+                return;
+            _systems.RunLate();
+            for (var i = 0; i < _modules.Length; ++i)
+            {
+                _modules[i].RunLate();
             }
         }
 
@@ -79,6 +91,7 @@ namespace EcsCore
             {
                 module.Destroy();
             }
+
             _systems.Destroy();
             World.Destroy();
             lazyWorld = new Lazy<EcsWorld>();
@@ -87,10 +100,10 @@ namespace EcsCore
         private static IEnumerable<EcsModule> CreateGlobalModules()
         {
             return Assembly.GetExecutingAssembly()
-                           .GetTypes()
-                           .Where(t => t.IsSubclassOf(typeof(EcsModule)))
-                           .Where(t => t.GetCustomAttribute<EcsGlobalModuleAttribute>() != null)
-                           .Select(t => (EcsModule)Activator.CreateInstance(t));
+                .GetTypes()
+                .Where(t => t.IsSubclassOf(typeof(EcsModule)))
+                .Where(t => t.GetCustomAttribute<EcsGlobalModuleAttribute>() != null)
+                .Select(t => (EcsModule) Activator.CreateInstance(t));
         }
     }
 }

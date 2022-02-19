@@ -52,8 +52,18 @@ namespace Leopotam.Ecs {
     /// <summary>
     /// Interface for Run Physics systems.
     /// </summary>
-    public interface IEcsRunPhysicSystem : IEcsSystem {
-        void RunPhysics ();
+    public interface IEcsRunPhysicSystem : IEcsSystem
+    {
+        void RunPhysics();
+    }
+
+    
+    /// <summary>
+    /// Interface for Run Late Update systems.
+    /// </summary>
+    public interface IEcsRunLateSystem : IEcsSystem
+    {
+        void RunLate();
     }
 
 #if DEBUG
@@ -78,6 +88,7 @@ namespace Leopotam.Ecs {
         readonly EcsGrowList<IEcsSystem> _allSystems = new EcsGrowList<IEcsSystem> (64);
         readonly EcsGrowList<EcsSystemsRunItem> _runSystems = new EcsGrowList<EcsSystemsRunItem> (64);
         readonly EcsGrowList<EcsSystemsPhysicRunItem> _runPhysicSystems = new EcsGrowList<EcsSystemsPhysicRunItem> (64);
+        readonly EcsGrowList<EcsSystemsLateRunItem> _runLateSystems = new EcsGrowList<EcsSystemsLateRunItem> (64);
         readonly Dictionary<int, int> _namedRunSystems = new Dictionary<int, int> (64);
         readonly Dictionary<Type, object> _injections = new Dictionary<Type, object> (32);
         bool _injected;
@@ -143,19 +154,12 @@ namespace Leopotam.Ecs {
                 _runSystems.Add (new EcsSystemsRunItem { Active = true, System = (IEcsRunSystem) system });
             }
             
-            if (system is IEcsRunPhysicSystem) {
-                if (namedRunSystem == null && system is EcsSystems ecsSystems) {
-                    namedRunSystem = ecsSystems.Name;
-                }
-                if (namedRunSystem != null) {
-                    #if DEBUG
-                    if (_namedRunSystems.ContainsKey (namedRunSystem.GetHashCode ())) {
-                        throw new Exception ($"Cant add named system - \"{namedRunSystem}\" name already exists.");
-                    }
-                    #endif
-                    _namedRunSystems[namedRunSystem.GetHashCode ()] = _runPhysicSystems.Count;
-                }
-                _runPhysicSystems.Add (new EcsSystemsPhysicRunItem { Active = true, System = (IEcsRunPhysicSystem) system });
+            if (system is IEcsRunPhysicSystem physicSystem) {
+                _runPhysicSystems.Add (new EcsSystemsPhysicRunItem { Active = true, System = physicSystem });
+            }
+            
+            if (system is IEcsRunLateSystem lateSystem) {
+                _runLateSystems.Add (new EcsSystemsLateRunItem { Active = true, System = lateSystem });
             }
             
             return this;
@@ -327,6 +331,27 @@ namespace Leopotam.Ecs {
                 #endif
             }
         }
+        
+        /// <summary>
+        /// Processes all IEcsRunLateSystem systems.
+        /// </summary>
+        public void RunLate () {
+            #if DEBUG
+            if (!_initialized) { throw new Exception ($"[{Name ?? "NONAME"}] EcsSystems should be initialized before."); }
+            if (_destroyed) { throw new Exception ("Cant touch after destroy."); }
+            #endif
+            for (int i = 0, iMax = _runLateSystems.Count; i < iMax; i++) {
+                var runItem = _runLateSystems.Items[i];
+                if (runItem.Active) {
+                    runItem.System.RunLate();
+                }
+                #if DEBUG
+                if (World.CheckForLeakedEntities (null)) {
+                    throw new Exception ($"Empty entity detected, possible memory leak in {_runPhysicSystems.Items[i].GetType ().Name}.RunPhysics ()");
+                }
+                #endif
+            }
+        }
 
         /// <summary>
         /// Destroys registered data.
@@ -435,5 +460,14 @@ namespace Leopotam.Ecs {
     public sealed class EcsSystemsPhysicRunItem {
         public bool Active;
         public IEcsRunPhysicSystem System;
+    }
+    
+    
+    /// <summary>
+    /// IEcsRunLateSystem instance with active state.
+    /// </summary>
+    public sealed class EcsSystemsLateRunItem {
+        public bool Active;
+        public IEcsRunLateSystem System;
     }
 }

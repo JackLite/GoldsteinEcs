@@ -27,7 +27,7 @@ namespace EcsCore
             return
                 from type in Assembly.GetExecutingAssembly().GetTypes()
                 let attr = type.GetCustomAttribute<EcsSystemAttribute>()
-                where attr != null && attr.Module == moduleType
+                where attr != null && attr.module == moduleType
                 select type;
         }
     }

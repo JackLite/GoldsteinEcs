@@ -5,14 +5,15 @@ namespace EcsCore
 {
     /// <summary>
     /// Entry point for ecs world
-    /// Processing Init, Run and RunPhysics
+    /// Processing Init, Run, RunLate and RunPhysics
     /// Create ecs world and global modules
     /// </summary>
     public class EcsWorldMono : MonoBehaviour
     {
-        public Action OnUpdate;
-        public Action OnFixedUpdate;
-        public Action OnDestroyed;
+        public Action onUpdate;
+        public Action onFixedUpdate;
+        public Action onLateUpdate;
+        public Action onDestroyed;
 
         private void Awake()
         {
@@ -26,17 +27,22 @@ namespace EcsCore
 
         private void Update()
         {
-            OnUpdate?.Invoke();
+            onUpdate?.Invoke();
         }
 
         private void FixedUpdate()
         {
-            OnFixedUpdate?.Invoke();
+            onFixedUpdate?.Invoke();
         }
 
+        private void LateUpdate()
+        {
+            onLateUpdate?.Invoke();
+        }
+        
         private void OnDestroy()
         {
-            OnDestroyed?.Invoke();
+            onDestroyed?.Invoke();
         }
     }
 }

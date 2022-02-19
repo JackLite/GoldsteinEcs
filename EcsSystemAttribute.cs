@@ -11,14 +11,14 @@ namespace EcsCore
         /// <summary>
         /// Type of module
         /// </summary>
-        public readonly Type Module;
+        public readonly Type module;
 
         /// <param name="module">Type of module</param>
         /// <seealso cref="EcsModule"/>
         /// <seealso cref="EcsUtilities"/>
         public EcsSystemAttribute(Type module)
         {
-            Module = module;
+            this.module = module;
         }
     }
 }

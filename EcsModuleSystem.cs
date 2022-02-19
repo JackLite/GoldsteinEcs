@@ -9,13 +9,14 @@ namespace EcsCore
     /// <summary>
     /// Internal system for controlling activation and deactivation of modules
     /// </summary>
-    internal class EcsModuleSystem : IEcsRunSystem, IEcsRunPhysicSystem
+    internal class EcsModuleSystem : IEcsRunSystem, IEcsRunPhysicSystem, IEcsRunLateSystem
     {
         private readonly EcsWorld _world;
         private readonly EcsEventTable _eventTable;
         private EcsFilter<EcsModuleActivationSignal> _activationFilter;
         private EcsFilter<EcsModuleDeactivationSignal> _deactivationFilter;
         private readonly EcsModule[] _modules;
+
         internal EcsModuleSystem(EcsEventTable eventTable)
         {
             _eventTable = eventTable;
@@ -28,15 +29,16 @@ namespace EcsCore
             {
                 var type = _deactivationFilter.Get1(i).ModuleType;
                 var module = _modules.FirstOrDefault(m => m.GetType() == type);
-                if(module != null && module.IsActiveAndInitialized())
+                if (module != null && module.IsActiveAndInitialized())
                     module.Deactivate();
                 _deactivationFilter.GetEntity(i).Destroy();
             }
+
             foreach (var i in _activationFilter)
             {
                 var type = _activationFilter.Get1(i).ModuleType;
                 var module = _modules.FirstOrDefault(m => m.GetType() == type);
-                if(module != null && !module.IsActiveAndInitialized())
+                if (module != null && !module.IsActiveAndInitialized())
                     module.Activate(_world, _eventTable);
 
                 _activationFilter.GetEntity(i).Destroy();
@@ -44,7 +46,7 @@ namespace EcsCore
 
             foreach (var module in _modules)
             {
-                if(module.IsActiveAndInitialized())
+                if (module.IsActiveAndInitialized())
                     module.Run();
             }
         }
@@ -53,18 +55,27 @@ namespace EcsCore
         {
             foreach (var module in _modules)
             {
-                if(module.IsActiveAndInitialized())
+                if (module.IsActiveAndInitialized())
                     module.RunPhysics();
+            }
+        }
+
+        public void RunLate()
+        {
+            foreach (var module in _modules)
+            {
+                if (module.IsActiveAndInitialized())
+                    module.RunLate();
             }
         }
 
         private static IEnumerable<EcsModule> GetAllEcsSetups()
         {
             return Assembly.GetExecutingAssembly()
-                           .GetTypes()
-                           .Where(t => t.IsSubclassOf(typeof(EcsModule)))
-                           .Where(t => t.GetCustomAttribute<EcsGlobalModuleAttribute>() == null)
-                           .Select(t => (EcsModule)Activator.CreateInstance(t));
+                .GetTypes()
+                .Where(t => t.IsSubclassOf(typeof(EcsModule)))
+                .Where(t => t.GetCustomAttribute<EcsGlobalModuleAttribute>() == null)
+                .Select(t => (EcsModule) Activator.CreateInstance(t));
         }
     }
 }

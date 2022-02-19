@@ -17,14 +17,13 @@ namespace EcsCore
     /// <seealso cref="EcsGlobalModuleAttribute"/>
     public abstract class EcsModule
     {
-        private EcsSystems _systems;
+        private SortedDictionary<int, EcsSystems> _systems;
         private bool _isActive;
         private readonly bool _isGlobal;
         private static readonly Dictionary<Type, object> _globalDependencies = new Dictionary<Type, object>();
         private static Exception _exception;
 
-        [Obsolete]
-        protected virtual Type Type => GetType();
+        [Obsolete] protected virtual Type Type => GetType();
 
         private Type ConcreteType => GetType();
 
@@ -41,27 +40,46 @@ namespace EcsCore
         /// <seealso cref="Setup"/>
         public async Task Activate(EcsWorld world, EcsEventTable eventTable)
         {
-            _systems = new EcsSystems(world);
-            _systems.Inject(eventTable);
             try
             {
                 await Setup();
 
                 UpdateGlobalDependencies();
 
+                _systems = new SortedDictionary<int, EcsSystems>();
+                var systemOrder = GetSystemsOrder();
                 foreach (var system in EcsUtilities.CreateSystems(ConcreteType))
                 {
-                    _systems.Add(system);
+                    var order = 0;
+                    if (systemOrder != null && systemOrder.ContainsKey(system.GetType()))
+                        order = systemOrder[system.GetType()];
+
+                    if (!_systems.ContainsKey(order))
+                    {
+                        _systems[order] = new EcsSystems(world);
+                        _systems[order].Inject(eventTable);
+                    }
+
                     InsertDependencies(system);
+                    _systems[order].Add(system);
                 }
 
-                _systems.Init();
+                foreach (var p in _systems)
+                {
+                    p.Value.Init();
+                }
+
+                _isActive = true;
             }
             catch (Exception e)
             {
                 _exception = new Exception(e.Message, e);
             }
-            _isActive = true;
+        }
+
+        protected virtual Dictionary<Type, int> GetSystemsOrder()
+        {
+            return null;
         }
 
         /// <summary>
@@ -78,8 +96,10 @@ namespace EcsCore
         /// </summary>
         internal void RunPhysics()
         {
-            CheckException();
-            _systems.RunPhysics();
+            foreach (var p in _systems)
+            {
+                p.Value.RunPhysics();
+            }
         }
 
         /// <summary>
@@ -88,7 +108,22 @@ namespace EcsCore
         internal void Run()
         {
             CheckException();
-            _systems.Run();
+            foreach (var p in _systems)
+            {
+                p.Value.Run();
+            }
+        }
+        
+        
+        /// <summary>
+        /// Just call RunLate at systems
+        /// </summary>
+        internal void RunLate()
+        {
+            foreach (var p in _systems)
+            {
+                p.Value.RunLate();
+            }
         }
 
 
@@ -98,7 +133,11 @@ namespace EcsCore
         /// </summary>
         public virtual void Deactivate()
         {
-            _systems.Destroy();
+            foreach (var p in _systems)
+            {
+                p.Value.Destroy();
+            }
+
             _systems = null;
             _isActive = false;
         }
@@ -164,11 +203,14 @@ namespace EcsCore
                         injections[i++] = dependencies[t];
                         continue;
                     }
+
                     throw new Exception($"Can't find injection {parameter.ParameterType} in method {setupMethod.Name}");
                 }
+
                 setupMethod.Invoke(system, injections);
                 return;
             }
+
             var fields = system.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
 
             foreach (var field in fields)
@@ -190,6 +232,7 @@ namespace EcsCore
                     continue;
                 return methodInfo;
             }
+
             return null;
         }
 
