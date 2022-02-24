@@ -25,6 +25,39 @@ namespace EcsCore
 
         public void Run()
         {
+            CheckActivationAndDeactivation();
+
+            foreach (var module in _modules)
+            {
+                if (module.IsActiveAndInitialized())
+                    module.Run();
+            }
+        }
+
+        public void RunPhysics()
+        {
+            CheckActivationAndDeactivation();
+
+            foreach (var module in _modules)
+            {
+                if (module.IsActiveAndInitialized())
+                    module.RunPhysics();
+            }
+        }
+
+        public void RunLate()
+        {
+            CheckActivationAndDeactivation();
+
+            foreach (var module in _modules)
+            {
+                if (module.IsActiveAndInitialized())
+                    module.RunLate();
+            }
+        }
+
+        private void CheckActivationAndDeactivation()
+        {
             foreach (var i in _deactivationFilter)
             {
                 var type = _deactivationFilter.Get1(i).ModuleType;
@@ -43,39 +76,15 @@ namespace EcsCore
 
                 _activationFilter.GetEntity(i).Destroy();
             }
-
-            foreach (var module in _modules)
-            {
-                if (module.IsActiveAndInitialized())
-                    module.Run();
-            }
-        }
-
-        public void RunPhysics()
-        {
-            foreach (var module in _modules)
-            {
-                if (module.IsActiveAndInitialized())
-                    module.RunPhysics();
-            }
-        }
-
-        public void RunLate()
-        {
-            foreach (var module in _modules)
-            {
-                if (module.IsActiveAndInitialized())
-                    module.RunLate();
-            }
         }
 
         private static IEnumerable<EcsModule> GetAllEcsSetups()
         {
             return Assembly.GetExecutingAssembly()
-                .GetTypes()
-                .Where(t => t.IsSubclassOf(typeof(EcsModule)))
-                .Where(t => t.GetCustomAttribute<EcsGlobalModuleAttribute>() == null)
-                .Select(t => (EcsModule) Activator.CreateInstance(t));
+                           .GetTypes()
+                           .Where(t => t.IsSubclassOf(typeof(EcsModule)))
+                           .Where(t => t.GetCustomAttribute<EcsGlobalModuleAttribute>() == null)
+                           .Select(t => (EcsModule) Activator.CreateInstance(t));
         }
     }
 }
