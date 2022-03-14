@@ -13,5 +13,10 @@ namespace EcsCore
         {
             world.NewEntity().Replace(new EcsModuleDeactivationSignal { ModuleType = typeof(T) });
         }
+
+        public static EcsEntity CreateOneFrame(this EcsWorld world)
+        {
+            return world.NewEntity().Replace(new EcsOneFrame());
+        }
     }
 }

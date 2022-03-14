@@ -15,7 +15,7 @@ namespace EcsCore
         public static EcsWorld World => lazyWorld.Value;
         private bool _isInitialize;
         private EcsSystems _systems;
-        private EcsModuleSystem _moduleSystem;
+        private EcsSystems _oneFrameSystems;
         private EcsModule[] _modules;
         private EcsEventTable _eventTable;
 
@@ -34,15 +34,17 @@ namespace EcsCore
         private async void StartWorld()
         {
             _eventTable = new EcsEventTable();
-            _moduleSystem = new EcsModuleSystem(_eventTable);
             _systems = new EcsSystems(World);
-            _systems.Add(_moduleSystem);
+            _systems.Add(new EcsModuleSystem(_eventTable));
+            _oneFrameSystems = new EcsSystems(World);
+            _oneFrameSystems.Add(new EcsOneFrameSystem());
             _modules = CreateGlobalModules().ToArray();
 
             foreach (var type in _modules)
                 await type.Activate(World, _eventTable);
 
             _systems.Init();
+            _oneFrameSystems.Init();
             _isInitialize = true;
         }
 
@@ -81,6 +83,7 @@ namespace EcsCore
             {
                 _modules[i].RunLate();
             }
+            _oneFrameSystems.RunLate();
         }
 
         private void OnDestroy()
