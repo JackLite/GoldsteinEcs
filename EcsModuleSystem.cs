@@ -82,7 +82,7 @@ namespace EcsCore
         {
             return Assembly.GetExecutingAssembly()
                            .GetTypes()
-                           .Where(t => t.IsSubclassOf(typeof(EcsModule)))
+                           .Where(t => t.IsSubclassOf(typeof(EcsModule)) && !t.IsAbstract)
                            .Where(t => t.GetCustomAttribute<EcsGlobalModuleAttribute>() == null)
                            .Select(t => (EcsModule) Activator.CreateInstance(t));
         }
