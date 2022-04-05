@@ -72,7 +72,7 @@ namespace EcsCore
                 var type = _activationFilter.Get1(i).ModuleType;
                 var module = _modules.FirstOrDefault(m => m.GetType() == type);
                 if (module != null && !module.IsActiveAndInitialized())
-                    module.Activate(_world, _eventTable);
+                    module.Activate(_world, _eventTable).Forget();
 
                 _activationFilter.GetEntity(i).Destroy();
             }
