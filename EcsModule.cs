@@ -88,7 +88,7 @@ namespace EcsCore
         /// <returns></returns>
         public bool IsActiveAndInitialized()
         {
-            return _systems ! != null && _isActive;
+            return _systems != null && _isActive;
         }
 
         /// <summary>
