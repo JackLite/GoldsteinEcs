@@ -15,19 +15,19 @@ namespace EcsCore
         private readonly EcsEventTable _eventTable;
         private EcsFilter<EcsModuleActivationSignal> _activationFilter;
         private EcsFilter<EcsModuleDeactivationSignal> _deactivationFilter;
-        private readonly EcsModule[] _modules;
+        private readonly Dictionary<Type, EcsModule> _modules;
 
         internal EcsModuleSystem(EcsEventTable eventTable)
         {
             _eventTable = eventTable;
-            _modules = GetAllEcsSetups().ToArray();
+            _modules = GetAllEcsModules().ToDictionary(m => m.GetType(), m => m);
         }
 
         public void Run()
         {
             CheckActivationAndDeactivation();
 
-            foreach (var module in _modules)
+            foreach (var (_, module) in _modules)
             {
                 if (module.IsActiveAndInitialized())
                     module.Run();
@@ -38,7 +38,7 @@ namespace EcsCore
         {
             CheckActivationAndDeactivation();
 
-            foreach (var module in _modules)
+            foreach (var (_, module) in _modules)
             {
                 if (module.IsActiveAndInitialized())
                     module.RunPhysics();
@@ -49,7 +49,7 @@ namespace EcsCore
         {
             CheckActivationAndDeactivation();
 
-            foreach (var module in _modules)
+            foreach (var (_, module) in _modules)
             {
                 if (module.IsActiveAndInitialized())
                     module.RunLate();
@@ -61,7 +61,7 @@ namespace EcsCore
             foreach (var i in _deactivationFilter)
             {
                 var type = _deactivationFilter.Get1(i).ModuleType;
-                var module = _modules.FirstOrDefault(m => m.GetType() == type);
+                _modules.TryGetValue(type, out var module);
                 if (module != null && module.IsActiveAndInitialized())
                     module.Deactivate();
                 _deactivationFilter.GetEntity(i).Destroy();
@@ -69,16 +69,21 @@ namespace EcsCore
 
             foreach (var i in _activationFilter)
             {
-                var type = _activationFilter.Get1(i).ModuleType;
-                var module = _modules.FirstOrDefault(m => m.GetType() == type);
+                var activationSignal = _activationFilter.Get1(i);
+                _modules.TryGetValue(activationSignal.moduleType, out var module);
                 if (module != null && !module.IsActiveAndInitialized())
-                    module.Activate(_world, _eventTable).Forget();
+                {
+                    EcsModule parent = null;
+                    if (activationSignal.dependenciesModule != null)
+                        _modules.TryGetValue(activationSignal.dependenciesModule, out parent);
+                    module.Activate(_world, _eventTable, parent).Forget();
+                }
 
                 _activationFilter.GetEntity(i).Destroy();
             }
         }
 
-        private static IEnumerable<EcsModule> GetAllEcsSetups()
+        private static IEnumerable<EcsModule> GetAllEcsModules()
         {
             return Assembly.GetExecutingAssembly()
                            .GetTypes()

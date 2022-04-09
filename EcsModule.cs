@@ -37,8 +37,9 @@ namespace EcsCore
         /// </summary>
         /// <param name="world">The world where systems and entities will live</param>
         /// <param name="eventTable">The table for events</param>
+        /// <param name="parent">Parent module, when you need dependencies from other module</param>
         /// <seealso cref="Setup"/>
-        public async Task Activate(EcsWorld world, EcsEventTable eventTable)
+        public async Task Activate(EcsWorld world, EcsEventTable eventTable, EcsModule parent = null)
         {
             try
             {
@@ -60,7 +61,7 @@ namespace EcsCore
                         _systems[order].Inject(eventTable);
                     }
 
-                    InsertDependencies(system);
+                    InsertDependencies(system, parent);
                     _systems[order].Add(system);
                 }
 
@@ -77,6 +78,10 @@ namespace EcsCore
             }
         }
 
+        /// <summary>
+        /// Let you set order of systems. Default order is 0. Systems will be ordered by ascending 
+        /// </summary>
+        /// <returns>Dictionary with key - type of system and value - order</returns>
         protected virtual Dictionary<Type, int> GetSystemsOrder()
         {
             return null;
@@ -180,9 +185,10 @@ namespace EcsCore
             }
         }
 
-        private void InsertDependencies(IEcsSystem system)
+        private void InsertDependencies(IEcsSystem system, EcsModule parent = null)
         {
             var dependencies = GetDependencies();
+            var parentDependencies = parent?.GetDependencies();
             var setupMethod = GetSetupMethod(system);
             if (setupMethod != null)
             {
@@ -204,6 +210,12 @@ namespace EcsCore
                         continue;
                     }
 
+                    if (parentDependencies != null && parentDependencies.ContainsKey(t))
+                    {
+                        injections[i++] = parentDependencies[t];
+                        continue;
+                    }
+
                     throw new Exception($"Can't find injection {parameter.ParameterType} in method {setupMethod.Name}");
                 }
 
@@ -220,6 +232,8 @@ namespace EcsCore
                     field.SetValue(system, _globalDependencies[t]);
                 if (dependencies.ContainsKey(t))
                     field.SetValue(system, dependencies[t]);
+                if (parentDependencies != null && parentDependencies.ContainsKey(t))
+                    field.SetValue(system, parentDependencies[t]);
             }
         }
 
@@ -240,7 +254,7 @@ namespace EcsCore
         /// Must return dictionary of dependencies for all systems in the module
         /// Dependencies in systems MUST BE private and non-static
         /// </summary>
-        protected virtual Dictionary<Type, object> GetDependencies()
+        public virtual Dictionary<Type, object> GetDependencies()
         {
             return new Dictionary<Type, object>(0);
         }
