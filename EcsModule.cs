@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using EcsCore.DependencyInjection;
+using JetBrains.Annotations;
 using Leopotam.Ecs;
 
 namespace EcsCore
@@ -19,17 +20,18 @@ namespace EcsCore
     {
         private SortedDictionary<int, EcsSystems> _systems;
         private bool _isActive;
-        private readonly bool _isGlobal;
         private static readonly Dictionary<Type, object> _globalDependencies = new Dictionary<Type, object>();
         private static Exception _exception;
+        private EcsModulesRepository _repository;
 
         [Obsolete] protected virtual Type Type => GetType();
 
         private Type ConcreteType => GetType();
+        public bool IsGlobal { get; }
 
         protected EcsModule()
         {
-            _isGlobal = ConcreteType.GetCustomAttribute<EcsGlobalModuleAttribute>() != null;
+            IsGlobal = ConcreteType.GetCustomAttribute<EcsGlobalModuleAttribute>() != null;
         }
 
         /// <summary>
@@ -91,6 +93,7 @@ namespace EcsCore
         /// Return true if systems was create and init
         /// </summary>
         /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsActiveAndInitialized()
         {
             return _systems != null && _isActive;
@@ -118,8 +121,8 @@ namespace EcsCore
                 p.Value.Run();
             }
         }
-        
-        
+
+
         /// <summary>
         /// Just call RunLate at systems
         /// </summary>
@@ -130,7 +133,6 @@ namespace EcsCore
                 p.Value.RunLate();
             }
         }
-
 
         /// <summary>
         /// Destroy systems in the module
@@ -150,6 +152,7 @@ namespace EcsCore
         /// <summary>
         /// For internal usage only
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Destroy()
         {
             Deactivate();
@@ -174,7 +177,7 @@ namespace EcsCore
 
         private void UpdateGlobalDependencies()
         {
-            if (!_isGlobal)
+            if (!IsGlobal)
                 return;
 
             foreach (var kvp in GetDependencies())
@@ -257,6 +260,32 @@ namespace EcsCore
         public virtual Dictionary<Type, object> GetDependencies()
         {
             return new Dictionary<Type, object>(0);
+        }
+
+        internal void InjectRepository(EcsModulesRepository repository)
+        {
+            _repository = repository;
+        }
+
+        /// <summary>
+        /// Let you get global dependencies in local module.
+        /// It can be useful when you create some local service that needs global dependency.
+        /// </summary>
+        /// <typeparam name="TModule">Module from where you need dependency</typeparam>
+        /// <typeparam name="TDependency">Dependency type</typeparam>
+        /// <returns>Dependency or null</returns>
+        [CanBeNull]
+        protected TDependency GetGlobalDependency<TModule, TDependency>()
+            where TModule : EcsModule where TDependency : class
+        {
+            var module = _repository.GetGlobalModule<TModule>();
+            if (module == null)
+                return null;
+
+            var dependencies = module.GetDependencies();
+            if (dependencies.ContainsKey(typeof(TDependency)))
+                return dependencies[typeof(TDependency)] as TDependency;
+            return null;
         }
     }
 }

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using Leopotam.Ecs;
 
 namespace EcsCore
@@ -9,18 +7,18 @@ namespace EcsCore
     /// <summary>
     /// Internal system for controlling activation and deactivation of modules
     /// </summary>
-    internal class EcsModuleSystem : IEcsRunSystem, IEcsRunPhysicSystem, IEcsRunLateSystem
+    internal class EcsModuleSystem : IEcsRunSystem, IEcsRunPhysicSystem, IEcsRunLateSystem, IEcsDestroySystem
     {
         private readonly EcsWorld _world;
         private readonly EcsEventTable _eventTable;
         private EcsFilter<EcsModuleActivationSignal> _activationFilter;
         private EcsFilter<EcsModuleDeactivationSignal> _deactivationFilter;
-        private readonly Dictionary<Type, EcsModule> _modules;
+        private readonly IReadOnlyDictionary<Type, EcsModule> _modules;
 
-        internal EcsModuleSystem(EcsEventTable eventTable)
+        internal EcsModuleSystem(EcsEventTable eventTable, EcsModulesRepository modulesRepository)
         {
             _eventTable = eventTable;
-            _modules = GetAllEcsModules().ToDictionary(m => m.GetType(), m => m);
+            _modules = modulesRepository.LocalModules;
         }
 
         public void Run()
@@ -83,13 +81,12 @@ namespace EcsCore
             }
         }
 
-        private static IEnumerable<EcsModule> GetAllEcsModules()
+        public void Destroy()
         {
-            return Assembly.GetExecutingAssembly()
-                           .GetTypes()
-                           .Where(t => t.IsSubclassOf(typeof(EcsModule)) && !t.IsAbstract)
-                           .Where(t => t.GetCustomAttribute<EcsGlobalModuleAttribute>() == null)
-                           .Select(t => (EcsModule) Activator.CreateInstance(t));
+            foreach (var module in _modules)
+            {
+                module.Value.Destroy();
+            }
         }
     }
 }

@@ -18,6 +18,7 @@ namespace EcsCore
         private EcsSystems _oneFrameSystems;
         private EcsModule[] _modules;
         private EcsEventTable _eventTable;
+        private EcsModulesRepository _modulesRepository;
 
         [RuntimeInitializeOnLoadMethod]
         private static void Startup()
@@ -34,11 +35,12 @@ namespace EcsCore
         private async void StartWorld()
         {
             _eventTable = new EcsEventTable();
+            _modulesRepository = new EcsModulesRepository();
             _systems = new EcsSystems(World);
-            _systems.Add(new EcsModuleSystem(_eventTable));
+            _systems.Add(new EcsModuleSystem(_eventTable, _modulesRepository));
             _oneFrameSystems = new EcsSystems(World);
             _oneFrameSystems.Add(new EcsOneFrameSystem());
-            _modules = CreateGlobalModules().ToArray();
+            _modules = _modulesRepository.GlobalModules.Values.ToArray();
 
             foreach (var type in _modules)
                 await type.Activate(World, _eventTable);
