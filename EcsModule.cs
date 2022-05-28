@@ -140,13 +140,19 @@ namespace EcsCore
         /// </summary>
         public virtual void Deactivate()
         {
+            if (_systems != null)
+                DestroySystems();
+            _isActive = false;
+        }
+
+        private void DestroySystems()
+        {
             foreach (var p in _systems)
             {
                 p.Value.Destroy();
             }
 
             _systems = null;
-            _isActive = false;
         }
 
         /// <summary>
