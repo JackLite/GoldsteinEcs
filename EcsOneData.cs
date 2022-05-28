@@ -7,12 +7,13 @@
 
         public EcsOneData(bool isCreateDefault = false)
         {
-            _data = default;
+            _isSet = isCreateDefault;
         }
-        
+
         public void SetData(in T data)
         {
             _data = data;
+            _isSet = true;
         }
 
         public void SetDataIfNotExist(in T data)

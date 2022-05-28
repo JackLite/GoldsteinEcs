@@ -10,15 +10,31 @@ namespace EcsCore
         /// Activate module: call Setup() and GetDependencies()
         /// </summary>
         /// <param name="world"></param>
-        /// <param name="parent">You can set parent if you want inherited dependencies in activating module</param>
         /// <typeparam name="T">Type of module that you want to activate</typeparam>
-        public static void ActivateModule<T>(this EcsWorld world, EcsModule parent = null) where T : EcsModule
+        public static void ActivateModule<T>(this EcsWorld world) where T : EcsModule
         {
             world.NewEntity()
                  .Replace(new EcsModuleActivationSignal
                  {
-                     moduleType = typeof(T),
-                     dependenciesModule = parent?.GetType()
+                     moduleType = typeof(T)
+                 });
+        }
+
+        /// <summary>
+        /// Activate module: call Setup() and GetDependencies()
+        /// </summary>
+        /// <param name="world"></param>
+        /// <typeparam name="TModule">Type of module that you want to activate</typeparam>
+        /// <typeparam name="TParent">Parent module. TModule get dependencies from parent</typeparam>
+        public static void ActivateModule<TModule, TParent>(this EcsWorld world) 
+            where TModule : EcsModule
+            where TParent : EcsModule
+        {
+            world.NewEntity()
+                 .Replace(new EcsModuleActivationSignal
+                 {
+                     moduleType = typeof(TModule),
+                     dependenciesModule = typeof(TParent)
                  });
         }
 

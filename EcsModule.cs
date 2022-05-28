@@ -236,6 +236,15 @@ namespace EcsCore
                         continue;
                     }
 
+                    if (t.BaseType == typeof(OneData))
+                    {
+                        var data = GetOneData(t, parent);
+                        if (data == null)
+                            ThrowOneDataException(t);
+                        injections[i++] = data;
+                        continue;
+                    }
+
                     throw new Exception($"Can't find injection {parameter.ParameterType} in method {setupMethod.Name}");
                 }
 
@@ -264,20 +273,30 @@ namespace EcsCore
 
         private void InsertOneData(Type t, IEcsSystem system, FieldInfo field, EcsModule parent = null)
         {
+            var oneData = GetOneData(t, parent);
+
+            if (oneData == null)
+                ThrowOneDataException(t);
+
+            field.SetValue(system, oneData);
+        }
+
+        private void ThrowOneDataException(Type t)
+        {
+            throw new ApplicationException(
+                $"Type {t.GetGenericArguments()[0]} does not exist in {nameof(OneDataDict)}. Are you forget to add it in {GetType().Name} module?");
+        }
+
+        private OneData GetOneData(Type t, EcsModule parent = null)
+        {
             var dataType = t.GetGenericArguments()[0];
             if (OneDataDict.ContainsKey(dataType))
-            {
-                field.SetValue(system, OneDataDict[dataType]);
-                return;
-            }
-            if (parent != null && parent.OneDataDict.ContainsKey(dataType))
-            {
-                field.SetValue(system, parent.OneDataDict[dataType]);
-                return;
-            }
+                return OneDataDict[dataType];
 
-            throw new ApplicationException(
-                $"Type {dataType} does not exist in {nameof(OneDataDict)}. Are you forget to add it in {GetType().Name} module?");
+            if (parent != null && parent.OneDataDict.ContainsKey(dataType))
+                return parent.OneDataDict[dataType];
+
+            return null;
         }
 
         private MethodInfo GetSetupMethod(IEcsSystem system)
