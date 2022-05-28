@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Leopotam.Ecs;
+using Leopotam.Ecs.UnityIntegration;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -23,6 +24,9 @@ namespace EcsCore
         [RuntimeInitializeOnLoadMethod]
         private static void Startup()
         {
+            #if UNITY_EDITOR
+                EcsWorldObserver.Create (World);
+            #endif  
             instance = new EcsWorldContainer();
             var ecsMono = new GameObject("EcsWorld").AddComponent<EcsWorldMono>();
             ecsMono.onUpdate = instance.Update;
