@@ -1,0 +1,39 @@
+﻿namespace EcsCore
+{
+    public class EcsOneData<T> : OneData where T : struct
+    {
+        private T _data;
+        private bool _isSet;
+
+        public EcsOneData(bool isCreateDefault = false)
+        {
+            _data = default;
+        }
+        
+        public void SetData(in T data)
+        {
+            _data = data;
+        }
+
+        public void SetDataIfNotExist(in T data)
+        {
+            if (_isSet)
+                return;
+            SetData(data);
+        }
+
+        public ref T GetData()
+        {
+            return ref _data;
+        }
+
+        public bool IsExist()
+        {
+            return _isSet;
+        }
+    }
+
+    public abstract class OneData
+    {
+    }
+}

@@ -29,6 +29,8 @@ namespace EcsCore
         private Type ConcreteType => GetType();
         public bool IsGlobal { get; }
 
+        public Dictionary<Type, OneData> OneDataDict { get; private set; } = new Dictionary<Type, OneData>();
+
         protected EcsModule()
         {
             IsGlobal = ConcreteType.GetCustomAttribute<EcsGlobalModuleAttribute>() != null;
@@ -243,7 +245,30 @@ namespace EcsCore
                     field.SetValue(system, dependencies[t]);
                 if (parentDependencies != null && parentDependencies.ContainsKey(t))
                     field.SetValue(system, parentDependencies[t]);
+
+                if (t.BaseType == typeof(OneData))
+                {
+                    InsertOneData(t, system, field, parent);
+                }
             }
+        }
+
+        private void InsertOneData(Type t, IEcsSystem system, FieldInfo field, EcsModule parent = null)
+        {
+            var dataType = t.GetGenericArguments()[0];
+            if (OneDataDict.ContainsKey(dataType))
+            {
+                field.SetValue(system, OneDataDict[dataType]);
+                return;
+            }
+            if (parent != null && parent.OneDataDict.ContainsKey(dataType))
+            {
+                field.SetValue(system, parent.OneDataDict[dataType]);
+                return;
+            }
+
+            throw new ApplicationException(
+                $"Type {dataType} does not exist in {nameof(OneDataDict)}. Are you forget to add it in {GetType().Name} module?");
         }
 
         private MethodInfo GetSetupMethod(IEcsSystem system)
@@ -294,4 +319,5 @@ namespace EcsCore
             return null;
         }
     }
+
 }

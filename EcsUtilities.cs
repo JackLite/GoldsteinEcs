@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Leopotam.Ecs;
+using UnityEngine;
 
 namespace EcsCore
 {
@@ -19,6 +20,14 @@ namespace EcsCore
         /// <seealso cref="EcsModule.Activate"/>
         internal static IEnumerable<IEcsSystem> CreateSystems(Type moduleType)
         {
+            var types = GetSystemTypes(moduleType);
+            foreach (var type in types)
+            {
+                if (type.GetInterfaces().All(t => t != typeof(IEcsSystem)))
+                {
+                    Debug.LogError("Wrong type! " + type);
+                }
+            }
             return GetSystemTypes(moduleType).Select(t => (IEcsSystem) Activator.CreateInstance(t));
         }
 
