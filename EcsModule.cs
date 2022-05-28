@@ -137,14 +137,23 @@ namespace EcsCore
         }
 
         /// <summary>
-        /// Destroy systems in the module
-        /// You can clear something at child, like release some resources
+        /// For internal usage only
         /// </summary>
-        public virtual void Deactivate()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void Deactivate()
         {
+            OnDeactivate();
             if (_systems != null)
                 DestroySystems();
             _isActive = false;
+        }
+
+        /// <summary>
+        /// Calls before destroy systems in the module
+        /// You can clear something here, like release some resources
+        /// </summary>
+        public virtual void OnDeactivate()
+        {
         }
 
         private void DestroySystems()
